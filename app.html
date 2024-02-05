@@ -1,0 +1,121 @@
+
+<template>
+    <div id="app" class="container mt-5">
+      <div class="row">
+        <div class="col-md-6">
+          <h2 class="mb-3">Task Planner</h2>
+          <div class="input-group mb-3">
+            <input v-model="newTask" type="text" class="form-control" placeholder="Add a new task">
+            <div class="input-group-append">
+              <button @click="addTask" class="btn btn-outline-secondary" type="button">Add</button>
+            </div>
+          </div>
+          <ul class="list-group">
+            <li v-for="(task, index) in tasks" :key="index" class="list-group-item d-flex justify-content-between align-items-center">
+              {{ task.text }}
+              <span>
+                <input type="checkbox" @change="completeTask(index)" :checked="task.completed">
+              </span>
+            </li>
+          </ul>
+        </div>
+  
+        <div class="col-md-6">
+          <h2 class="mb-3">Weather in Mountain View</h2>
+          <div v-if="weather">
+            <div class="weather-widget">
+              <div class="temperature">{{ weather.temperature }}°C</div>
+              <div v-if="weather.precipitation > 0" class="precipitation" :title="'Precipitation: ' + weather.precipitation + '%'">
+                <i class="fas fa-cloud-rain"></i>
+              </div>
+              <div v-else class="precipitation" title="No precipitation">
+                <i class="fas fa-sun"></i>
+              </div>
+            </div>
+          </div>
+          <div v-else>
+            <p>Loading weather...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </template>
+  
+  <script>
+    //with appropriate precipitation info etc on hovering
+  export default {
+    data() {
+      return {
+        newTask: '',
+        tasks: [],
+        weather: null,
+      };
+    },
+    mounted() {
+      // Fetch initial weather data
+      this.fetchWeather();
+    },
+    methods: {
+      addTask() {
+        if (this.newTask.trim() !== '') {
+          this.tasks.push({ text: this.newTask, completed: false });
+          this.newTask = '';
+        }
+      },
+      completeTask(index) {
+        this.tasks[index].completed = !this.tasks[index].completed;
+      },
+      async fetchWeather() {
+        try {
+          const response = await fetch('https://api.tomorrow.io/v4/timelines', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': 'API_KEY', // Replace with user's API
+            },
+            body: JSON.stringify({
+              location: '37.3861,-122.0838', // Mountain View coordinates
+              fields: ['temperature_2m', 'precipitation'],
+              units: 'metric',
+              timesteps: ['current'],
+            }),
+          });
+  
+          const data = await response.json();
+          const currentWeather = data?.data?.timelines[0]?.intervals[0]?.values;
+  
+          if (currentWeather) {
+            this.weather = {
+              temperature: currentWeather.temperature_2m,
+              precipitation: currentWeather.precipitation || 0,
+            };
+          }
+        } //Error handling
+        catch (error) {
+          console.error('Error fetching weather:', error);
+        }
+      },
+    },
+  };
+  </script>
+  
+  <style>
+ 
+  
+  .weather-widget {
+    display: flex;
+    align-items: center;
+  }
+  
+  .temperature {
+    font-size: 24px;
+    margin-right: 10px;
+  }
+  
+  .precipitation {
+    color: blue;
+    cursor: pointer;
+    margin-left: 10px;  /* Added margin for better spacing */
+  }
+  </style>
+  
